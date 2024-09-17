@@ -13,10 +13,10 @@ Parameters:
     Default: v1
 
 Resources:
-  DevAcademyApi:
+  JoammegaApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name: DevAcademyApi
+      Name: JoammegaApi
       StageName: !Ref Version
       Cors:
         AllowMethods: "'*'"
@@ -49,7 +49,7 @@ Resources:
         GetAllSalesResource:
           Type: Api
           Properties:
-            RestApiId: !Ref DevAcademyApi
+            RestApiId: !Ref JoammegaApi
             Path: sales
             Method: GET
             Auth:
@@ -57,7 +57,7 @@ Resources:
   getAllSalesLambdaPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-    - DevAcademyApi
+    - JoammegaApi
     - getAllSalesFunction
     Properties:
       Action: lambda:InvokeFunction
@@ -82,7 +82,7 @@ Resources:
         GetSaleResource:
           Type: Api
           Properties:
-            RestApiId: !Ref DevAcademyApi
+            RestApiId: !Ref JoammegaApi
             Path: sales/{id}
             Method: GET
             Auth:
@@ -90,7 +90,7 @@ Resources:
   getSaleByIdLambdaPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-    - DevAcademyApi
+    - JoammegaApi
     - getSaleByIdFunction
     Properties:
       Action: lambda:InvokeFunction
@@ -115,7 +115,7 @@ Resources:
         CreateSaleResource:
           Type: Api
           Properties:
-            RestApiId: !Ref DevAcademyApi
+            RestApiId: !Ref JoammegaApi
             Path: sales
             Method: POST
             Auth:
@@ -123,66 +123,126 @@ Resources:
   createSaleLambdaPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-    - DevAcademyApi
+    - JoammegaApi
     - createSaleFunction
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !Ref createSaleFunction
       Principal: apigateway.amazonaws.com
 
-  getAllProductsMockFunction:
+  getAllProductsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/products/handlers/get-all-mocking.getAllProductsMockHandler
+      CodeUri: src/
+      Handler: products/handlers/get-all.getAllProducts
       Runtime: nodejs10.x
       MemorySize: 128
       Timeout: 100
-      Description: All products mock
+      Description: Get all products from dynamodb table
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProductsTable
+      Environment:
+        Variables:
+          SAMPLE_TABLE2: !Ref ProductsTable
       Events:
-        GetAllProductsMockResource:
+        GetAllproductsResource:
           Type: Api
           Properties:
-            RestApiId: !Ref DevAcademyApi
-            Path: products/mock
+            RestApiId: !Ref JoammegaApi
+            Path: products
             Method: GET
             Auth:
               Authorizer: CognitoAuthorizer
   getAllProductsLambdaPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-    - DevAcademyApi
-    - getAllProductsMockFunction
+    - JoammegaApi
+    - getAllProductsFunction
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref getAllProductsMockFunction
+      FunctionName: !Ref getAllProductsFunction
       Principal: apigateway.amazonaws.com
 
-  getAllProductsUnauthMockFunction:
+  getProductByIdFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: src/products/handlers/get-all-mocking.getAllProductsMockHandler
+      Handler: src/products/handlers/get-by-id.getByIdProduct
       Runtime: nodejs10.x
       MemorySize: 128
       Timeout: 100
-      Description: All products mock
+      Description: Get product by id from dynamodb table
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProductsTable
+      Environment:
+        Variables:
+          SAMPLE_TABLE2: !Ref ProductsTable
       Events:
-        GetAllProductsMockResource:
+        GetProductResource:
           Type: Api
           Properties:
-            RestApiId: !Ref DevAcademyApi
-            Path: /unauth/products/mock
+            RestApiId: !Ref JoammegaApi
+            Path: products/{id}
             Method: GET
-  getAllProductsUnauthLambdaPermission:
+            Auth:
+              Authorizer: CognitoAuthorizer
+  getProductByIdLambdaPermission:
     Type: AWS::Lambda::Permission
     DependsOn:
-    - DevAcademyApi
-    - getAllProductsUnauthMockFunction
+    - JoammegaApi
+    - getProductByIdFunction
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref getAllProductsUnauthMockFunction
+      FunctionName: !Ref getProductByIdFunction
       Principal: apigateway.amazonaws.com
+
+  createProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/products/handlers/create.createProductHandler
+      Runtime: nodejs10.x
+      MemorySize: 128
+      Timeout: 100
+      Description: Create product in dynamodb
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProductsTable
+      Environment:
+        Variables:
+          SAMPLE_TABLE2: !Ref ProductsTable
+      Events:
+        CreateProductResource:
+          Type: Api
+          Properties:
+            RestApiId: !Ref JoammegaApi
+            Path: products
+            Method: POST
+            Auth:
+              Authorizer: CognitoAuthorizer
+  createProductLambdaPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+    - JoammegaApi
+    - createProductFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref createProductFunction
+      Principal: apigateway.amazonaws.com
+
+  
   
   VendasTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+  
+  ProductsTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
       PrimaryKey:
